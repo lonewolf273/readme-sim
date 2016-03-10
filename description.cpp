@@ -1,358 +1,443 @@
-#include "description.h"
 #include <cassert>
-#include <string>
-#include <iostream>
-#include <vector>
+#include "description.h"
 
-void Description::unsort()
+///////////////////////////////
+//
+//	   Private Inspectors
+//
+///////////////////////////////
+
+void description::fullSort()
 {
-	titlesSorted = false;
-	contentsSorted = true;
+	if (!isSorted_) sort(0, chapters_.size() - 1);
+	isSorted_ = true;
 }
 
-void Description::sorted(bool & trueSorted, bool & falseSorted)
+chapter * description::getChapterPtrAt(unsigned int index)
 {
-	trueSorted = true;
-	falseSorted = false;
+	return chapters_[index];
 }
 
-unsigned int Description::sortedFindTitle(string title, unsigned int low, unsigned int hi) const
+chapter * description::getChapterPtrAt(unsigned int index) const
 {
-	if (low <= hi)
-	{
-		if (low == hi) return title == titles_[low] ? low : -1;
-		
-		unsigned int mid = (low + hi) / 2;
-
-		if (titles_[mid] == title) return mid;
-		if (titles_[mid] > title) return sortedFindTitle(title, low, mid - 1);
-		if (titles_[mid] < title) return sortedFindTitle(title, mid + 1, low);
-	}
-	return -1;
+	return chapters_[index];
 }
 
-unsigned int Description::sortedFindContent(string content, unsigned int low, unsigned int hi) const
+void description::sort(unsigned int low, unsigned int high)
 {
-	if (low <= hi)
-	{
-		if (low == hi) return content == content_[low] ? low : -1;
-
-		unsigned int mid = (low + hi) / 2;
-
-		if (content_[mid] == content) return mid;
-		if (content_[mid] < content) return  sortedFindContent(content, low, mid - 1);
-		if (content_[mid] > content) return sortedFindContent(content, mid + 1, hi);
-	}
-	return -1;
-}
-
-//TODO: WORK ON FIND CONTENTS, SORTS, AND PUBLIC FIND/SORT
-
-void Description::sortTitles(unsigned int low, unsigned int hi)
-{
-		if (low < hi)
+		if (low < high)
 		{
-			int p = partitionTitle(low, hi);
-			sortTitles(p + 1, hi);
-			sortTitles(low, p - 1);
+			unsigned int p = partition(low, high);
+			sort(low, p - 1);
+			sort(p + 1, high);
 			
-			sorted(titlesSorted, contentsSorted);
 		}
 }
 
-void Description::sortContents(unsigned int low, unsigned int hi)
+unsigned int description::partition(unsigned int low, unsigned int high)
 {
-	if (low < hi)
-	{
-		int p = partitionContents(low, hi);
-		sortContents(p + 1, hi);
-		sortContents(low, p - 1);
 	
-		sorted(titlesSorted, contentsSorted);
-	}
-}
-
-unsigned int Description::partitionTitle(unsigned int low, unsigned int hi)
-{
-	string pivot = titles_[low];
-	int i = low;
-	int j = hi + 1;
-	while (true) //infinite loop until it can return
-	{
-		do
-		{
-			++i;
-		} while (titles_[i] < pivot);
-		do
-		{
-			--j;
-		} while (titles_[j] > pivot);
-		if (i >= j) return j;
-		swap(i, j);
-	}
-}
-
-unsigned int Description::partitionContents(unsigned int low, unsigned int hi)
-{
-	string pivot = content_[low];
-	int i = low;
-	int j = hi + 1;
+	chapter * pivot = chapters_[low];
+	unsigned int i = low;
+	unsigned int j = high + 1;
 	while (true)
 	{
 		do
 		{
 			++i;
-		} while (content_[i] < pivot);
+		} while (*chapters_[i] < *pivot);
 
 		do
 		{
 			--j;
-		} while (content_[j] > pivot);
+		} while (*chapters_[j] < *pivot);
 		if (i >= j) return j;
-		swap(i, j);
+		vectorSwap(i, j);
 	}
 }
 
-void Description::swap(unsigned int low, unsigned int hi)
+void description::vectorSwap(unsigned int one, unsigned int two)
 {
-	string _temp = titles_[low];
-	titles_[low] = titles_[hi];
-	titles_[hi] = _temp;
-
-	_temp = content_[low];
-	content_[low] = content_[hi];
-	content_[hi] = _temp;
-
-	unsort();
-}
-
-bool Description::quickFindTitle(string title) const
-{
-	Description d(titles_, content_);
-	d.sortTitles(0, d.titles_.size() - 1);
-	return (d.sortedFindTitle(title, 0, d.titles_.size() - 1) != -1);
-}
-
-bool Description::quickFindContent(string content) const
-{
-	Description d(titles_, content_);
-	d.sortContents(0, d.content_.size() - 1);
-	return (d.sortedFindContent(content, 0, d.content_.size() - 1) != -1);
-}
-
-Description::Description(vector<string>titles, vector<string>content)
-{
-	titles_ = titles;
-	content_ = content;
-	unsort();
-}
-
-vector<string> Description::getTitles() const
-{
-	return titles_;
-}
-vector<string> Description::getContent() const
-{
-	return content_;
-}
-
-string * Description::getChapter(unsigned int i)
-{
-	if (chapter_ != oldChapter_)
-	{
-		titles_[chapterIndex_] = chapter_[chapterIndex_];
-		content_[chapterIndex_] = chapter_[chapterIndex_];
-	}
-	chapter_[0] = titles_[i];
-	chapter_[1] = content_[i];
-	oldChapter_[0] = chapter_[0];
-	oldChapter_[1] = chapter_[1];
-	chapterIndex_ = i;
-	return chapter_;
-}
-
-
-string Description::getTitleAt(unsigned int i) const
-{
-	return titles_[i];
-}
-
-string Description::getContentAt(unsigned int i) const
-{
-	return content_[i];
-}
-
-void Description::setChapter(unsigned int i, string title, string content)
-{
-	assert(i < titles_.size());
-
-	setTitleAt(i, title);
-	setContentAt(i, content);
-	unsort();
-}
-void Description::setTitles(vector<string>titles)
-{
-	int size = titles.size() - titles_.size();
-	// size == 0 when they're the same size
-	// size > 0 when you pass in a larger vector
-	// size < 0 when you pass in a smaller vector
-
-	titles_ = titles;
-	for (int i = 0; i < size; i++) content_.push_back("");
-	for (int i = 0; i > size; i--) titles_.push_back(DEFAULT_TITLE);
-	unsort();
-
-}
-
-void Description::setTitleAt(unsigned int i, string title)
-{
-	assert(i < titles_.size());
 	
-	Description d(titles_, content_);
-
-	if (d.findTitle(title) == -1)
-	{
-		titles_[i] == title;
-	}
-	unsort();
-}
-
-void Description::setContents(vector<string>contents)
-{
-	int size = contents.size() - content_.size();
-	// size == 0 when they're the same size
-	// size > 0 when you pass in a larger vector
-	// size < 0 when you pass in a smaller vector
-
-	content_ = contents;
-	for (int i = 0; i > size; i++) content_.push_back("");
-	for (int i = 0; i < size; i--) titles_.push_back(DEFAULT_TITLE);
-	unsort();
-}
-
-void Description::setContentAt(unsigned int i, string content)
-{
-	assert(i < content_.size());
-	content_[i] = content;
-}
-
-void Description::swapTitlesOnly(unsigned int i, unsigned int j)
-{
-	string _temp = titles_[i];
-	titles_[i] = titles_[j];
-	titles_[j] = _temp;
-
-	unsort();
-
-}
-
-void Description::swapTitlesOnly(string title1, string title2)
-{
-	Description d(titles_, content_);
-
-	int t1 = d.findTitle(title1);
-	int t2 = d.findTitle(title2);
-
-	unsort();
-}
-
-void Description::sortTitles()
-{
-	if (titlesSorted) return;
-
-	sortTitles(0, titles_.size() - 1);
-	sorted(titlesSorted, contentsSorted);
-}
-
-void Description::sortContents()
-{
-	if (contentsSorted) return;
-	sortContents(0, content_.size() - 1);
-	sorted(contentsSorted, titlesSorted);
-}
-
-bool Description::add(string title, string contents)
-{
-	if (title == "") title = DEFAULT_TITLE;
-
-	if (quickFindTitle(title))
-	{
-		content_.push_back(contents);
-		titles_.push_back(title);
-		unsort();
-		return true;
-	}
-	return false;
-}
-
-unsigned int Description::findTitle(string title) const
-{
-	if (title == "" || title == DEFAULT_TITLE) return -1;
+	chapter * _temp = chapters_[one];
 	
-	if (titlesSorted) return sortedSearchTitle(title);
-	
+	chapters_[one] = chapters_[two];
+	chapters_[two] = _temp;
+}
 
-	//TODO: MAKE A SLOWER SYSTEM FOR UNSORTED TITLES
-	unsigned int i = 0;
-	unsigned int j = titles_.size() - 1;
-	while (true)
+
+
+chapter * description::getCurrentChapterPtr() const
+{
+	return current_;
+}
+
+void description::setCurrentChapterPtr(chapter * c)
+{
+	current_ = c;
+}
+
+void description::setCurrentChapterPtr(unsigned int index)
+{
+	assert(index >= chapters_.size());
+	current_ = chapters_[index];
+}
+
+void description::pointerSwap(unsigned int one, unsigned int two)
+{
+	if (head_ == chapters_[one])
 	{
-		if (i > j) return -1;
+		head_ = chapters_[two];
+	}
+	else if (head_ == chapters_[two])
+	{
+		head_ = chapters_[one];
+	}
 
-		if (titles_[i] == title) return i;
-		else ++i;
+	if (tail_ == chapters_[one])
+	{
+		tail_ = chapters_[two];
+	}
+	else if (tail_ == chapters_[two])
+	{
+		tail_ = chapters_[one];
+	}
 
-		if (titles_[j] == title) return j;
-		else --j;
+	chapters_[one]->swapChapters(chapters_[two]);
+
+}
+
+void description::pointerOverwrite(chapter * overwritten, chapter * overwriter)
+{
+	overwriter->setNextChapter(overwritten->getNextChapter());
+	overwriter->setPrevChapter(overwritten->getPrevChapter());
+
+	delete overwritten;
+}
+
+void description::insertChapters(vector<chapter *>c)
+{
+	for (unsigned int i = 0; i < c.size(); i++)
+	{
+		chapter * k = &(*c[i]);
+
+		if (head_ == nullptr)
+		{
+			head_ = k;
+			tail_ = k;
+			chapters_.push_back(k);
+			isSorted_ = true;
+		}
+		else if (find(*k, 0, chapters_.size() - 1) == -1)
+		{
+			tail_->setNextChapter(k);
+			tail_ = k;
+			chapters_.push_back(k);
+		}
+	}
+	isSorted_ = head_ == tail_ || tail_ == nullptr;
+	fullSort();
+}
+
+bool description::contains(string title) const
+{
+	chapter * k = new chapter(title);
+	int i = find(title, 0, chapters_.size() - 1);
+	delete k;
+	return i != -1;
+}
+
+void description::insertChapter(chapter * c)
+{
+	if (head_ == nullptr)
+	{
+		head_ = &(*c);
+		tail_ = &(*c);
+		chapters_.push_back(&(*c));
+		isSorted_ = true;
+	}
+	else if (find(*c, 0, chapters_.size() - 1) == -1)
+	{
+		tail_->setNextChapter(&(*c));
+		tail_ = &(*c);
+		chapters_.push_back(&(*c));
+	}
+}
+
+unsigned int description::find(const chapter & c, unsigned int low, unsigned int high) const
+{
+	if (low <= high)
+	{
+		if (low == high) return c == *chapters_[low] ? low : -1;
+		unsigned int mid = (low + high) / 2;
+		if (c == *chapters_[mid]) return mid;
+		if (c < *chapters_[mid]) return find(c, low, mid - 1);
+		if (c > *chapters_[mid]) return find(c, mid + 1, high);
 	}
 	return -1;
 }
+///////////////////////////////
+//
+// Constructors and Destructors
+//
+///////////////////////////////
 
-unsigned int Description::findContent(string content) const
+description::description()
 {
-	if (content == "") return -1;
-	if (contentsSorted) return sortedSearchContent(content);
+	head_ = nullptr;
+	tail_ = nullptr;
+	current_ = nullptr;
+	isSorted_ = true;
+}
 
-	//TODO: MAKE A SLOWER SYSTEM FOR UNSORTED CONTENTS	
-	unsigned int i = 0;
-	unsigned int j = titles_.size() - 1;
-	while (true)
+description::description(const description & d)
+{
+	int heading = d.find(*d.head_, 0, d.chapters_.size() - 1);
+	int tailing = d.find(*d.tail_, 0, d.chapters_.size() - 1);
+	int curr = d.find(*d.current_, 0, d.chapters_.size() - 1);
+
+	insertChapters(d.chapters_);
+
+	head_ = chapters_[heading];
+	tail_ = chapters_[tailing];
+	current_ = chapters_[curr];
+}
+
+description::description(vector<string>titles, vector<string>contents)
+{
+	head_ = nullptr;
+	tail_ = nullptr;
+	current_ = nullptr;
+	isSorted_ = true;
+	insertChapters(titles, contents);
+}
+
+description::description(vector<chapter>c)
+{
+	vector<chapter *> k(c.size());
+	for (unsigned int i = 0; i < c.size(); i++)
 	{
-		if (i > j) return -1;
+		k[i] = &c[i];
+	}
+	insertChapters(k);
+	k.clear();
+}
+
+description::~description()
+{
+	if (chapters_.size() > 0)
+	{
+		for (unsigned int i = 0; i < chapters_.size(); i++)
+		{
+			delete chapters_[i];
+			chapters_[i] = nullptr;
+		}
+	}
+}
+
+
+///////////////////////////////
+//
+//		  Inspectors
+//
+///////////////////////////////
+
+chapter & description::getChapterAt(unsigned int index)
+{
+	return *chapters_[index];
+}
+
+chapter & description::getChapterAt(unsigned int index) const
+{
+	return *chapters_[index];
+}
+
+unsigned int description::size() const
+{
+	return chapters_.size();
+}
+
+chapter & description::getCurrentChapter() const
+{
+	return *getCurrentChapterPtr();
+}
+
+chapter & description::getNextChapter() const
+{
+	if (getCurrentChapter().getNextChapter() == nullptr)
+		return *tail_;
+	
+	return *getCurrentChapter().getNextChapter();
+}
+
+chapter & description::getPrevChapter() const
+{
+	if (getCurrentChapter().getNextChapter() == nullptr)
+		return *head_;
+	
+	return *getCurrentChapter().getPrevChapter();
+}
+
+chapter & description::operator[](unsigned int index)
+{
+	return getChapterAt(index);
+}
+
+chapter & description::operator[](unsigned int index) const
+{
+	return getChapterAt(index);
+}
+
+///////////////////////////////
+//
+//		  Mutators
+//
+///////////////////////////////
+void description::insertChapters(vector<string>title, vector<string>contents)
+{
+	assert(title.size() >= contents.size());
+	contents.resize(title.size(), "");
+	for (unsigned int i = 0; i < title.size(); i++)
+	{
+		chapter * c = new chapter(title[i], contents[i]);
+
+		if (head_ == nullptr)
+		{
+			head_ = c;
+			tail_ = c;
+			chapters_.push_back(c);
+			isSorted_ = true;
+		}
+		else if (find(*c, 0, chapters_.size() - 1) == -1)
+		{
+			tail_->setNextChapter(c);
+			tail_ = c;
+			chapters_.push_back(c);
+		}
+		else
+		{
+			delete c;
+		}
+	}
+	isSorted_ = false;
+	fullSort();
+}
+
+void description::insertChapters(vector<string>descriptions)
+{
+  //TODO: MAKE INSERT CHAPTERS FUNCTIONALITY
+}
+
+void description::insertChapter(string title, string content)
+{
+	
+	chapter * c = new chapter(title, content);
+
+	if (head_ == nullptr)
+	{
+		head_ = &(*c);
+		tail_ = &(*c);
+		chapters_.push_back(&(*c));
+		isSorted_ = true;
+	}
+	else if (find(*c, 0, chapters_.size() - 1) == -1)
+	{
+		tail_->setNextChapter(&(*c));
+		tail_ = &(*c);
+		chapters_.push_back(&(*c));
 		
-		if (content_[i] == content) return i;
-		i++;
-
-		if (content_[j] == content) return j;
-		j--;
+		isSorted_ = *c <= *tail_;
+		fullSort();
 	}
-	return -1;
+	else
+	{
+		delete c;
+	}
 }
 
-unsigned int Description::sortAndSearchTitle(string title)
+
+void description::beginChapters()
 {
-	if (!titlesSorted) sortTitles(0, titles_.size() - 1);
-
-	return sortedFindTitle(title, 0, titles_.size() - 1);
+	current_ = head_;
 }
 
-unsigned int Description::sortedSearchTitle(string title) const
+bool description::gotoNextChapter()
 {
-	if (!titlesSorted) return -1;
+	if (current_->getNextChapter() == nullptr) return false;
 
-	return sortedFindTitle(title, 0, titles_.size() - 1);
+	current_ = current_->getNextChapter();
+	return true;
 }
 
-unsigned int Description::sortAndSearchContent(string content)
+bool description::gotoPrevChapter()
 {
-	if (!contentsSorted) sortContents(0, content_.size() - 1);
-	
-	return sortedFindContent(content, 0, content_.size() - 1);
+	if (current_->getPrevChapter() == nullptr) return false;
+	current_ = current_->getPrevChapter();
+	return true;
 }
 
-unsigned int Description::sortedSearchContent(string content) const
+bool description::deleteChapter(const chapter & c)
 {
-	if (!contentsSorted) return -1;
-	return sortedFindContent(content, 0, content_.size() - 1);
+	int k = find(c, 0, chapters_.size() - 1);
+	if (k == -1) return false;
+
+	delete chapters_[k];
+	chapters_[k] = nullptr;
+	vectorSwap(k, chapters_.size() - 1);
+	chapters_.pop_back();
+	isSorted_ = false;
+	fullSort();
+	return true;
 }
 
+bool description::deleteChapter(string title)
+{
+	chapter c(title);
+	deleteChapter(c);
+	return true;
+}
+
+description & description::operator=(const description & d)
+{
+	int heading = d.find(*d.head_, 0, d.chapters_.size() - 1);
+	int tailing = d.find(*d.tail_, 0, d.chapters_.size() - 1);
+	int curr = d.find(*d.current_, 0, d.chapters_.size() - 1);
+
+	insertChapters(d.chapters_);
+
+	head_ = chapters_[heading];
+	tail_ = chapters_[tailing];
+	current_ = chapters_[curr];
+	return *this;
+}
+///////////////////////////////
+//
+//		  Facilitators
+//
+///////////////////////////////
+void description::output(ostream & os) const
+{
+	if (size() == 0)
+	{
+		return;
+	}
+	chapter * currentPtr = head_;
+	os << *currentPtr << endl;
+	while (currentPtr->getNextChapter() != nullptr)
+	{
+		currentPtr = currentPtr->getNextChapter();
+		os << *currentPtr << endl;
+	}
+}
+
+///////////////////////////////
+//
+//		  Operators
+//
+///////////////////////////////
+
+ostream & operator<<(ostream & os, const description & d)
+{
+	d.output(os);
+	return os;
+}

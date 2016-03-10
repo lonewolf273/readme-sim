@@ -67,10 +67,12 @@ Options MenuOptions::getOption(unsigned int i) const
 	case 7:
 		return SAVE_FILE;
 	case 8:
-		return PUBLISH_FILE;
+		return VIEW_README;
 	case 9:
-		return CONTACT_US;
+		return PUBLISH_FILE;
 	case 10:
+		return CONTACT_US;
+	case 11:
 		return HELP;
 	default:
 		return QUIT;

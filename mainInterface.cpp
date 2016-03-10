@@ -1,7 +1,9 @@
-#include "mainInterface.h"
 #include <iomanip>
-#include "menuoptions.h"
+#include <sstream>
 #include <direct.h>
+#include "mainInterface.h"
+#include "menuoptions.h"
+
 
 
 ///////////////////////////
@@ -72,14 +74,14 @@ void MainInterface::setCurrentOption(MenuOptions m)
 //
 ///////////////////////////	
 
-void MainInterface::clearConsole()
+void MainInterface::clearStream(istream & is)
 {
-	cin.ignore(INT_MAX, '\n');
-	cin.clear();
+	is.sync();
 }
 
 void MainInterface::play(ostream & os, istream & is)
 {
+	savedFile_ = true; //you technically saved a file that you never loaded
 	os << endl << introduction();
 	os << endl << endl;
 
@@ -89,7 +91,7 @@ void MainInterface::play(ostream & os, istream & is)
 void MainInterface::mainMenu(ostream & os, istream & is)
 {
 	string input;
-
+	clearStream(is);
 	while (true)
 	{
 		currentOption_ = MAIN_MENU;
@@ -120,6 +122,10 @@ void MainInterface::mainMenu(ostream & os, istream & is)
 			_mkdir("projects");
 			loadedFile_ = create(os, is);
 		}
+		else if (input == MenuOptions(ADD_ITEM).indexToString() || input == lower(MenuOptions(ADD_ITEM).toString()))
+		{
+			addItem(os, is);
+		}
 		else if (input == MenuOptions(PUBLISH_FILE).indexToString() || input == lower(MenuOptions(PUBLISH_FILE).toString()))
 		{
 			_mkdir("publishedFiles");
@@ -133,9 +139,128 @@ void MainInterface::mainMenu(ostream & os, istream & is)
 		{
 			if (quit(os, is)) return;
 		}
+		else if (input == MenuOptions(DISPLAY_CONTENT).indexToString() || input == lower(MenuOptions(DISPLAY_CONTENT).toString()))
+		{
+			viewReadme(os, is);
+		}
+		else if (input == MenuOptions(VIEW_README).indexToString() || input == lower(MenuOptions(VIEW_README).toString()))
+		{
+			viewReadme(os, is);
+		}
 	}
 }
 
+void MainInterface::addItem(ostream & os, istream & is)
+{
+	currentOption_ = ADD_ITEM;
+	if (!loadedFile_)
+	{
+		os << "Sorry but you have not loaded a file. Please load a file and try again." << endl;
+		return;
+	}
+	do
+	{
+		os << "Welcome to the adding process. This is where you get to add either a section or a description to your readme." << endl << endl;
+		string input;
+
+		os << "What would you like to add: " << endl;
+		os << "1) Section" << endl;
+		os << "2) Chapter" << endl;
+		os << "3) Help" << endl;
+
+		os << endl;
+
+		is >> input;
+
+		while (true)
+		{
+			if (lower(input) == "quit")
+			{
+				return;
+			}
+			else if (lower(input) == "section" || input == "1") addSection(os, is);
+			else if (lower(input) == "chapter" || input == "2") addChapter(os, is);
+			else if (lower(input) == "help" || input == "3")
+			{
+				//TODO: EXPAND HELP SECTION
+				os << "This is for adding parts of of the section for you." << endl;
+			}
+			else
+				os << "Invalid choice. Please try again." << endl;
+
+			os << "What would you like to add: " << endl;
+			os << "1) Section" << endl;
+			os << "2) Chapter" << endl;
+			os << "3) Help" << endl;
+			os << "Quit" << endl;
+			is >> input;
+		}
+	}while (true);
+}
+
+void MainInterface::addChapter(ostream & os, istream & is)
+{
+	string title;
+	os << "Please give a title for this chapter: " << endl;
+	is >> title;
+	if (lower(title) == "quit") return;
+	
+	string contents; //the current paragraph of contents
+	ostringstream ostr; //for parsing the entire chapter in the readme
+	do
+	{
+		os << "Please give your paragraph of text. If you are done adding chapters, simply type \"++++\":" << endl;
+		getline(is, contents);
+		if (contents != "++++")
+		{
+			ostr << contents << endl;
+		}
+	} while (contents != "++++");
+	readme_.addChapter(title, ostr.str());
+	savedFile_ = false;
+}
+
+void MainInterface::addSection(ostream & os, istream &is)
+{
+	string content;
+	os << "Please give the content name: ";
+	is >> content;
+
+	if (lower(content) == "quit") return;
+
+	string location;
+	os << "Please give the loation name: ";
+	is >> location;
+	if (lower(location) == "quit") return;
+
+	string section;
+	os << "Please give the section name: ";
+	is >> section;
+	if (lower(section) == "quit") return;
+
+	if (readme_.findSection(content) != -1)
+	{
+		os << "Error: section already found: " << endl;
+		os << readme_.getSectionAt(readme_.findSection(content));
+	}
+	else
+	{
+		readme_.addSection(content, location, section);
+		os << "Success! Your file was added!" << endl;
+		if (readme_.findSection(content) == -1)
+		{
+			os << "Wait.... take that back. something went wrong" << endl;
+			os << "The size is: " << readme_.getTable().size() << endl;
+		}
+		savedFile_ = false;
+		changedFile_ = true;
+	}
+}
+
+void MainInterface::viewReadme(ostream & os, istream & is)
+{
+	os << readme_ << endl;
+}
 bool MainInterface::load(ostream & os, istream & is)
 {
 	currentOption_ = LOAD_FILE;
@@ -160,7 +285,8 @@ bool MainInterface::load(ostream & os, istream & is)
 	os << endl;
 
 	os << endl << "Loading " << fileName << "..." << endl;
-	bool check = readme_.load(PROJECT_DIR + fileName);
+	string s = PROJECT_DIR + fileName;
+	bool check = readme_.load(s);
 	if (check)
 	{
 		os << "Congratulations! Your file was loaded!" << endl;
@@ -310,6 +436,23 @@ void MainInterface::help(ostream & os, string s)
 bool MainInterface::quit(ostream & os, istream & is)
 {
 	currentOption_ = QUIT;
+
+	char op;
+	if (!savedFile_)
+	{
+		os << "Would you like to save your file first? 'y' or 'n': " << endl;
+		is >> op;
+		while (op != 'y' && op != 'n' && op != 'Y' && op != 'N')
+		{
+			os << "invalid option. try again." << endl;
+			os << "Would you like to save your file first? 'y' or 'n': " << endl;
+			is >> op;
+		}
+		if (op == 'y' || op == 'Y')
+		{
+			save(os, is);
+		}
+	}
 	string s;
 	do
 	{
@@ -323,6 +466,7 @@ bool MainInterface::quit(ostream & os, istream & is)
 	return false;
 }
 
+//request the input from the user
 string MainInterface::requestInput(ostream & os, istream & is, string question)
 {
 	string s;
@@ -335,15 +479,17 @@ string MainInterface::requestInput(ostream & os, istream & is, string question)
 			os << ' ';
 		else
 			os << question << ' ';
-		is >> s;
+		getline(is, s);
+		s = s.substr(0, s.find(' '));
 		validated = question == "saving" ? validateInput(s) : validateInput(s, question);
-		clearConsole();
+		clearStream(is);
 		if (!validated)
 			os << "Invalid choice. Pick another option. " << endl;
 		else return lower(s);
 	}
 }
 
+//turns the input to lowercase
 string MainInterface::lower(string s) const
 {
 	const char LOWER = 'A' - 'a';
@@ -354,6 +500,8 @@ string MainInterface::lower(string s) const
 	return s;
 }
 
+
+//checks if the input is valid
 bool MainInterface::validateInput(string & s, string process)
 {
 	s = lower(s);
@@ -373,6 +521,17 @@ bool MainInterface::validateInput(string & s, string process)
 		if (s == "load" || s == "save" || s == "create" || s == "publish")
 		{
 			s += " file";
+			return true;
+		}
+		if (s == "view")
+		{
+			s += " readme";
+			return true;
+		}
+
+		if (s == "add")
+		{
+			s += " item";
 			return true;
 		}
 	}

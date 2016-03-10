@@ -46,29 +46,19 @@ void Readme::swap(int firstIndex, int lastIndex)
 Readme::Readme()
 {
 	fileName_ = "";
-	description_ = "";
 }
 
-Readme::Readme(vector<Section>table, string description, string fileName)
+Readme::Readme(vector<Section>table, string fileName)
 {
 	table_ = table;
-	description_ = description;
 	fileName_ = fileName;
 }
 
-Readme::Readme(const Readme & r)
+Readme::Readme(vector<Section>table, vector<string>titles, vector<string>contents, string fileName)
 {
-	fileName_ = r.getFileName();
-	table_ = r.getTable();
-	description_ = r.getDescription();
-}
-
-Readme::~Readme()
-{
-	save();
-	table_.clear();
-	fileName_ = "";
-	description_ = "";
+	table_ = table;
+	description_.insertChapters(titles, contents);
+	fileName_ = fileName;
 }
 
 vector<Section> Readme::getTable() const
@@ -81,7 +71,7 @@ vector<Section> & Readme::getTable()
 	return table_;
 }
 
-string Readme::getDescription() const
+description Readme::getDescription() const
 {
 	return description_;
 }
@@ -152,7 +142,8 @@ void Readme::setFileName(string fileName)
 
 void Readme::addSection(Section s)
 {
-	if (findSection(s) != -1)
+
+	if (findSection(s) == -1)
 	{
 		if (missingSections_.size() < 1)
 			table_.push_back(s);
@@ -168,6 +159,16 @@ void Readme::addSection(Section s)
 void Readme::addSection(string content, string location, string section)
 {
 	addSection(Section(content, location, section));
+}
+
+void Readme::addChapter(chapter & c)
+{
+	description_.insertChapter(c.getTitle(), c.getContent());
+}
+
+void Readme::addChapter(string title, string content)
+{
+	description_.insertChapter(title, content);
 }
 
 void Readme::removeSection(unsigned int i)
@@ -305,23 +306,25 @@ bool Readme::load(string fileName)
 	if (!is.is_open() || !is.good()) return false;
 
 	bool onDescription = false;
+	string input;
 	vector<Section>table;
-	string description;
+	vector<string> descriptions;
+
 	string str[3];
 	int i = 0;
 	while (!is.eof())
 	{
 		if (!onDescription)
 		{
-			is >> description;
+			is >> input;
 			if (i == 3)
 			{
 				table.push_back(Section());
 				i = 0;
 			}
-			if (description == "<Description>") onDescription = true;
-			if (!onDescription) str[i] = description;
-			else description = "";
+			if (input == "<Description>") onDescription = true;
+			if (!onDescription) str[i] = input;
+			else input = "";
 		}
 		else
 		{
@@ -329,18 +332,18 @@ bool Readme::load(string fileName)
 			getline(is, inputString);
 			if (inputString != "<DescriptionEnd>")
 			{
-				description += inputString + '\n';
+				descriptions.push_back(inputString);
 			}
 		}
 	}
 	is.close();
 	is.clear();
-	fileName_ = fileName;
-	if (description == "" && table.size() == 0) return false;
 
-	table_.clear();
+	fileName_ = fileName;
+	if (descriptions.size() == 0 && table.size() == 0) return false;
+
 	table_ = table;
-	description_ = description;
+	description_.insertChapters(descriptions);
 	return true;
 }
 

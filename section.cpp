@@ -35,7 +35,6 @@ Section::Section(string s[3])
 
 Section::Section(vector<string> s, unsigned int firstIndex, unsigned int lastIndex)
 {
-	//	TODO: FINISH CONSTRUCTOR
 	content_ = "";
 	location_ = "";
 	section_ = "";

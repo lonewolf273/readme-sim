@@ -1,88 +1,120 @@
+/*
+	@file:		description.h
+	@author:	Vincent Mills
+	@version:	v. 0.2.1
+	@date:		2 March 2016
+*/
+
 #ifndef _DESCRIPTION_H
 #define _DESCRIPTION_H
 
+#include "chapter.h"
 #include <vector>
-#include <map>
 
-using namespace std;
-
-class Description
+class description
 {
+	//Description class
+	//Made with a list of chapters
+	//Organizes based on the chapters
+	//uses pointers for optimization
 private:
-	vector<string>titles_;
-	vector<string>content_;
+	vector<chapter *>chapters_; //alphabetical list of chapters
+	chapter * head_; //top of list of chapters
+		//can find all chapters based on this
+	chapter * tail_; //bottom of list of chapters
+	chapter * current_; //current chapter that the description is on
+	bool isSorted_;
 
-	
 
-	unsigned int chapterIndex_ = -1;
-	map<string, string> chapters_;
-	string oldChapter_[2] = { "", "" };
-	string chapter_[2] = { "", "" };
-	bool titlesSorted = false;
-	bool contentsSorted = false;
+	///////////////////////////////
+	//
+	//	   Private Inspectors
+	//
+	///////////////////////////////
+	chapter * getChapterPtrAt(unsigned int index);
+	chapter * getChapterPtrAt(unsigned int index) const;
+	chapter * getCurrentChapterPtr() const; // gets the current chapter pointer
 
-	unsigned int sortedFindTitle(string title, unsigned int low, unsigned int high) const;
-	unsigned int sortedFindContent(string content, unsigned int low, unsigned int high) const;
-	
-	unsigned int partitionTitle(unsigned int low, unsigned int hi);
-	unsigned int partitionContents(unsigned int low, unsigned int hi);
+	///////////////////////////////
+	//
+	//	   Private Mutators
+	//
+	///////////////////////////////
+	void fullSort(); // does full sort of contents if sorted (use this)
+	void sort(unsigned int low, unsigned int high); //sorts contents
+	unsigned int partition(unsigned int low, unsigned int high); //helps with sorting
+	void vectorSwap(unsigned int one, unsigned int two); //swaps two objects' position in vector
+	void pointerSwap(unsigned int one, unsigned int two); //swaps two objects' vector position
+	void pointerOverwrite(chapter * overwritten, chapter * overwriter); //overwrite pointers
+	void setCurrentChapterPtr(chapter * c); // sets the current chapter pointer to that chapter
+	void setCurrentChapterPtr(unsigned int index); //sets the currrent chapter pointer to that chapter
+	void insertChapters(vector<chapter *>c);
+	void insertChapter(chapter * c);
 
-	void swap(unsigned int i, unsigned int j);
-
-	void sortTitles(unsigned int low, unsigned int hi);
-	void sortContents(unsigned int low, unsigned int hi);
-
-	void unsort();
-	void sorted(bool & trueSorted, bool & falseSorted);
-
+	///////////////////////////////
+	//
+	//	   Private Facilitators
+	//
+	///////////////////////////////
+	unsigned int find(const chapter & c, unsigned int low, unsigned int high) const; //finds the chapter that you're looking for
+		// uses the chapter address
 
 
 public:
-	const string DEFAULT_TITLE = "Untitled";
+	///////////////////////////////
+	//
+	// Constructors and Destructors
+	//
+	///////////////////////////////
+	description(); //default constructor
+	description(const description & d); //copy constructord
+		// should almost never be used but just in case.
 
-	Description(vector<string>titles = {}, vector<string>content = {});
-
-	vector<string> getTitles() const;
-	vector<string> getContent() const;
-	string * getChapter(unsigned int i);
-
-	string getTitleAt(unsigned int i) const;
-	string getContentAt(unsigned int i) const;
-
-	void setChapter(unsigned int i, string title, string content);
-	void setTitles(vector<string>titles);
-	void setTitleAt(unsigned int i, string title);
-	void setContents(vector<string>contents);
-	void setContentAt(unsigned int i, string content);
-
-	void swapTitlesOnly(unsigned int i, unsigned int j);
-	void swapTitlesOnly(string title1, string title2);
-
-	void sortTitles();
-	void sortContents();
-
-	bool add(string contents = "", string title = "");
-
-	unsigned int findTitle(string title) const;
-	unsigned int findContent(string content) const;
-
-	unsigned int sortAndSearchTitle(string title); //does a sorted search on title
-		//if the list isn't sorted, it will sort it for you
-	unsigned int sortedSearchTitle(string title) const; //same as normal counterpart
-		//but it doesn't sort the list for you. Just returns -1
-	unsigned int sortAndSearchContent(string content); //does a sorted search on content
-		//if the list isn't sorted, it will sort it for you
-	unsigned int sortedSearchContent(string content) const; //same as normal counterpart
-		//but it doesn't sort the list for you. Just returns -1
-
-	bool quickFindTitle(string title) const; //just tells whether or not the title exists
-		//will not make any edits to original
-	bool quickFindContent(string content) const; //just telss whether or not the content exists
-		//will not make any edits to original
+	description(vector<string>titles, vector<string>contents); //alternate constructor
+		//given titles and contents
 	
-	bool removeChapter(string title); //removes title to list
-		//actually just makes a blank title
+	description(vector<chapter>c);
+
+	~description(); //destructor
+	///////////////////////////////
+	//
+	//		  Inspectors
+	//
+	///////////////////////////////
+	chapter & getChapterAt(unsigned int index); //gets chapter at index
+	chapter & getChapterAt(unsigned int index) const; //same as before but const
+	unsigned int size() const; //gets how many chapters are in the description
+	chapter & getCurrentChapter() const;
+	chapter & getNextChapter() const;
+	chapter & getPrevChapter() const;
+
+	chapter & operator[](unsigned int index); 
+	chapter & operator[](unsigned int index) const;
+
+	description & operator=(const description & d);
+	///////////////////////////////
+	//
+	//		  Mutators
+	//
+	///////////////////////////////
+	void insertChapter(string title, string content = "");
+	void insertChapters(vector<string>title, vector<string>contents);
+	void insertChapters(vector<string>descriptions);
+
+
+	bool contains(string title) const;
+	void beginChapters(); //starts at the beginning of the description
+	bool gotoNextChapter(); //true if it can move to the next chapter
+	bool gotoPrevChapter(); //true if it can move to the previous chapter
+	bool deleteChapter(const chapter & c);
+	bool deleteChapter(string title);
+	///////////////////////////////
+	//
+	//		  Facilitators
+	//
+	///////////////////////////////
+	void output(ostream & os) const;
 };
+ostream & operator<<(ostream & os, const description & d);
 
 #endif
-

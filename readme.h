@@ -5,6 +5,7 @@
 #include <string>
 #include "section.h"
 #include <vector>
+#include "description.h"
 
 using namespace std;
 
@@ -14,7 +15,7 @@ private:
 	const string FILE_NAME_DEFAULT = "README.txt";
 	string fileName_;
 	vector<Section>table_;
-	string description_;
+	description description_;
 	vector<int>missingSections_;
 
 	void sortSections(int firstIndex, int lastIndex);
@@ -23,14 +24,12 @@ private:
 
 public:
 	Readme();
-	Readme(vector<Section>table, string description = "", string fileName = "");
-	Readme::Readme(const Readme & r);
-
-	~Readme();
+	Readme(vector<Section>table, string fileName = "");
+	Readme(vector<Section>table, vector<string>titles, vector<string>contents, string fileName = "");
 
 	vector<Section> getTable() const;
 	vector<Section> & getTable();
-	string getDescription() const;
+	description getDescription() const;
 	string getFileName() const;
 
 	Section & getSectionAt(int index);
@@ -46,6 +45,8 @@ public:
 	void setFileName(string fileName);
 	void addSection(Section s);
 	void addSection(string content = "", string location = "", string section = "");
+	void addChapter(chapter & c);
+	void addChapter(string title, string content);
 	void removeSection(unsigned int i);
 	void removeSection(Section s);
 	bool changeSectionTo(unsigned int index, Section s);
